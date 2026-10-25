@@ -44,9 +44,52 @@ def signer_fingerprint(apk):
         [str(tools[0]), "verify", "--print-certs", str(apk)], text=True
     )
     match = re.search(r"Signer #1 certificate SHA-256 digest:\s*([0-9a-f:]{64,95})", result, re.I)
-    if not match:
-        raise RuntimeError("Não foi possível validar a assinatura: " + str(apk))
-    return match.group(1).lower().replace(":", "")
+    if match:
+        return match.group(1).lower().replace(":", "")
+    return extract_v2_cert_sha256(apk)
+
+
+def extract_v2_cert_sha256(apk):
+    """Lê o certificado X.509 da assinatura APK Signature Scheme v2 validada por apksigner."""
+    import struct
+
+    data = Path(apk).read_bytes()
+    eocd = data.rfind(b"PK\\x05\\x06")
+    if eocd < 0 or eocd + 20 > len(data):
+        raise ValueError("APK inválido: diretório ZIP ausente")
+    cd_start = struct.unpack_from("<I", data, eocd + 16)[0]
+    if data[cd_start - 16:cd_start] != b"APK Sig Block 42":
+        raise ValueError("APK sem bloco de assinatura v2/v3")
+    footer_size = struct.unpack_from("<Q", data, cd_start - 24)[0]
+    start = cd_start - footer_size - 8
+    if start < 0 or struct.unpack_from("<Q", data, start)[0] != footer_size:
+        raise ValueError("Bloco de assinatura APK inválido")
+
+    def read_prefixed(blob, offset):
+        if offset + 4 > len(blob):
+            raise ValueError("Assinatura APK truncada")
+        size = struct.unpack_from("<I", blob, offset)[0]
+        end = offset + 4 + size
+        if end > len(blob):
+            raise ValueError("Comprimento inválido na assinatura APK")
+        return blob[offset + 4:end], end
+
+    pos = start + 8
+    while pos < cd_start - 24:
+        size = struct.unpack_from("<Q", data, pos)[0]
+        identifier = struct.unpack_from("<I", data, pos + 8)[0]
+        if identifier == 0x7109871A:
+            block = data[pos + 12:pos + 8 + size]
+            signers, _ = read_prefixed(block, 0)
+            signer, _ = read_prefixed(signers, 0)
+            signed_data, _ = read_prefixed(signer, 0)
+            _, next_pos = read_prefixed(signed_data, 0)
+            certificates, _ = read_prefixed(signed_data, next_pos)
+            certificate, _ = read_prefixed(certificates, 0)
+            return hashlib.sha256(certificate).hexdigest()
+        pos += 8 + size
+    raise ValueError("Certificado APK v2 não encontrado")
+
 
 def scan_builds(root, output):
     entries = []
