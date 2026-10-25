@@ -1,0 +1,9 @@
+.gradle/
+upstream/
+**/build/
+*.apk
+*.aab
+local.properties
+.idea/
+.DS_Store
+__pycache__/
