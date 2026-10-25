@@ -1,0 +1,32 @@
+{
+  "name": "Mihon Privado",
+  "badgeLabel": "PRV",
+  "signingKey": "4fe2aa16bb83b74d45b4f1260236593ad1ad5599bd0f2afce810667619c3b3bc",
+  "contact": {
+    "website": "https://raw.githubusercontent.com/playedu1/mihon-extensoes-privadas/repo"
+  },
+  "extensionList": {
+    "extensions": [
+      {
+        "name": "BlitzToons",
+        "packageName": "eu.kanade.tachiyomi.extension.pt.blitztoons",
+        "resources": {
+          "apkUrl": "https://raw.githubusercontent.com/playedu1/mihon-extensoes-privadas/repo/apk/eu.kanade.tachiyomi.extension.pt.blitztoons.apk",
+          "iconUrl": "https://raw.githubusercontent.com/playedu1/mihon-extensoes-privadas/repo/icon/eu.kanade.tachiyomi.extension.pt.blitztoons.png"
+        },
+        "extensionLib": "1.6",
+        "versionCode": "106001",
+        "versionName": "1.6.1",
+        "contentWarning": 2,
+        "sources": [
+          {
+            "id": "1235800220312092775",
+            "name": "BlitzToons",
+            "language": "pt-BR",
+            "homeUrl": "https://blitztoons.com"
+          }
+        ]
+      }
+    ]
+  }
+}
