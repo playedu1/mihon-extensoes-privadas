@@ -54,7 +54,7 @@ def extract_v2_cert_sha256(apk):
     import struct
 
     data = Path(apk).read_bytes()
-    eocd = data.rfind(b"PK\\x05\\x06")
+    eocd = data.rfind(bytes.fromhex("504b0506"))
     if eocd < 0 or eocd + 20 > len(data):
         raise ValueError("APK inválido: diretório ZIP ausente")
     cd_start = struct.unpack_from("<I", data, eocd + 16)[0]
