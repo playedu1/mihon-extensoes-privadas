@@ -42,7 +42,7 @@ jobs:
           java-version: '25'
 
       - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
