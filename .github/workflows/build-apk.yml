@@ -53,6 +53,10 @@ jobs:
           python3 private/scripts/generate_icons.py
           cp -r private/src/pt/blitztoons/res upstream/src/pt/blitztoons/
 
+      - name: Padronizar formatação Kotlin (Spotless)
+        working-directory: upstream
+        run: ./gradlew :src:pt:blitztoons:spotlessApply --no-daemon
+
       - name: Compilar APKs debug
         shell: bash
         working-directory: upstream
