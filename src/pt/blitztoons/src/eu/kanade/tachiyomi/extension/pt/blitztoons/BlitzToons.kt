@@ -131,7 +131,9 @@ abstract class BlitzToons : KeiSource() {
                 }
                 .distinctBy { it.url }
                 .sortedByDescending { it.chapter_number }
-        } else chapters
+        } else {
+            chapters
+        }
 
         if (chapterList.isEmpty() && fetchChapters) {
             throw IllegalStateException("BlitzToons: capítulos não encontrados ou restritos.")
