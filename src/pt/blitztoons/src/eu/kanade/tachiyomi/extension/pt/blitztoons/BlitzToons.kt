@@ -221,9 +221,6 @@ abstract class BlitzToons : KeiSource() {
         }
     }
 
-    private fun normalize(input: String) = Normalizer.normalize(input, Normalizer.Form.NFD)
-        .replace(diacritics, "").lowercase()
-
     companion object {
         private val defaultGenres = listOf(
             "Ação" to "acao",
@@ -240,6 +237,5 @@ abstract class BlitzToons : KeiSource() {
         )
         private val chapterRegex = Regex("Capítulo\\s+\\d+(?:[,.]\\d+)?", RegexOption.IGNORE_CASE)
         private val chapterNumberRegex = Regex("(\\d+(?:[,.]\\d+)?)")
-        private val diacritics = Regex("\\p{Mn}+")
     }
 }
