@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout do repositório privado
+      - name: Checkout das fontes
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -76,24 +76,20 @@ jobs:
           find upstream/src -type f -path '*/build/outputs/apk/debug/*.apk' -print -exec sha256sum {} \;
           test -n "$(find upstream/src -type f -path '*/build/outputs/apk/debug/*.apk' -print -quit)"
 
-      - name: Preparar catálogo Mihon privado
-        if: ${{ vars.PRIVATE_MIHON_BASE_URL != '' }}
-        env:
-          PRIVATE_MIHON_BASE_URL: ${{ vars.PRIVATE_MIHON_BASE_URL }}
+      - name: Montar loja Mihon (GitHub raw)
         run: |
           python3 private/scripts/build_private_repo.py \
             --build-root upstream/src \
-            --store private-store \
-            --base-url "$PRIVATE_MIHON_BASE_URL"
+            --store site \
+            --base-url "https://raw.githubusercontent.com/${{ github.repository }}/repo"
 
-      - name: Guardar catálogo como artifact privado
-        if: ${{ vars.PRIVATE_MIHON_BASE_URL != '' }}
+      - name: Salvar loja para publicação
         uses: actions/upload-artifact@v4
         with:
-          name: mihon-loja-privada
-          path: private-store/
+          name: mihon-site-staging
+          path: site/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
       - name: Guardar APK como artifact privado
         uses: actions/upload-artifact@v4
@@ -102,3 +98,47 @@ jobs:
           path: upstream/src/**/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
+
+  publicar:
+    name: Publicar índice e APK na branch repo
+    needs: apk
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout com token restrito de publicação
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: published
+          fetch-depth: 0
+
+      - name: Recuperar apenas o pacote compilado
+        uses: actions/download-artifact@v4
+        with:
+          name: mihon-site-staging
+          path: site
+
+      - name: Atualizar exclusivamente a branch repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C published config user.name "github-actions[bot]"
+          git -C published config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C published fetch origin repo || true
+          if git -C published show-ref --verify --quiet refs/remotes/origin/repo; then
+            git -C published switch -C repo origin/repo
+          else
+            git -C published switch --orphan repo
+          fi
+          find published -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a site/. published/
+          git -C published add -A
+          if git -C published diff --cached --quiet && git -C published rev-parse --verify HEAD >/dev/null 2>&1; then
+            echo "Catálogo sem alterações"
+            exit 0
+          fi
+          git -C published commit -m "publish: índice e APK Mihon"
+          git -C published push origin HEAD:repo
