@@ -74,7 +74,7 @@ abstract class BlitzToons : KeiSource() {
             CatalogFilter(
                 "Ordenação",
                 "ordem",
-                listOf("Recentes" to "recentes", "Populares" to "populares", "Melhor nota" to "nota", "A–Z" to "az"),
+                listOf("Recentes" to "recentes", "Populares" to "populares", "Melhor nota" to "nota", "A–Z" to "alfabetica"),
             ),
             CatalogFilter(
                 "Status",
