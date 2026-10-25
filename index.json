@@ -1,7 +1,7 @@
 {
   "name": "Mihon Privado",
   "badgeLabel": "PRV",
-  "signingKey": "4fe2aa16bb83b74d45b4f1260236593ad1ad5599bd0f2afce810667619c3b3bc",
+  "signingKey": "714d4cd915ef74e25a870d45c9cb481927d701c40066e17c9c01db89d38b02bc",
   "contact": {
     "website": "https://raw.githubusercontent.com/playedu1/mihon-extensoes-privadas/repo"
   },
@@ -15,8 +15,8 @@
           "iconUrl": "https://raw.githubusercontent.com/playedu1/mihon-extensoes-privadas/repo/icon/eu.kanade.tachiyomi.extension.pt.blitztoons.png"
         },
         "extensionLib": "1.6",
-        "versionCode": "106001",
-        "versionName": "1.6.1",
+        "versionCode": "106002",
+        "versionName": "1.6.2",
         "contentWarning": 2,
         "sources": [
           {
