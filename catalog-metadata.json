@@ -5,8 +5,8 @@
       "theme": null,
       "packageName": "eu.kanade.tachiyomi.extension.pt.blitztoons",
       "name": "BlitzToons",
-      "versionCode": 106002,
-      "versionName": "1.6.2",
+      "versionCode": 106003,
+      "versionName": "1.6.3",
       "extensionLib": "1.6",
       "contentWarning": 2,
       "sources": [
@@ -19,7 +19,7 @@
       ]
     },
     "apk": "eu.kanade.tachiyomi.extension.pt.blitztoons.apk",
-    "fingerprint": "714d4cd915ef74e25a870d45c9cb481927d701c40066e17c9c01db89d38b02bc",
-    "sha256": "c72e4b181be694e06862e5b2867ef86299fa0da45fc0dfac6c574787cd08e5cb"
+    "fingerprint": "c168898acca3b50757f3797151946e465d89cd2b39cd272d6ad39811c61adf6d",
+    "sha256": "5b0c32164c8b34b23a46e46ee815f4ef59ff9dae3a840afce92ee51eabc795bb"
   }
 ]
