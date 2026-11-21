@@ -16,6 +16,12 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import android.util.Base64
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import kotlinx.serialization.json.JsonArray
@@ -194,12 +200,54 @@ abstract class BlitzToons : KeiSource() {
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val document = client.get(getChapterUrl(chapter)).asJsoup()
-        val images = document.select("img[alt^='Página ']")
-            .mapNotNull { it.imageSource() }
-            .filter { it.startsWith("https://") }
-            .distinct()
+        val block = document.selectFirst("[data-block][data-pt]")
+        val images = if (block != null) {
+            // O HTML traz SVGs temporários; o JS do site obtém as imagens reais pela API.
+            val slug = document.selectFirst("[data-reader]")?.attr("data-slug").orEmpty()
+            val number = block.attr("data-num")
+            val token = block.attr("data-pt")
+            if (slug.isBlank() || number.isBlank() || token.isBlank()) {
+                throw IllegalStateException("BlitzToons: metadados das páginas ausentes.")
+            }
+            val mac = Mac.getInstance("HmacSHA256")
+            mac.init(SecretKeySpec(PAGES_API_KEY.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+            val signature = Base64.encodeToString(
+                mac.doFinal("p|${token}".toByteArray(Charsets.UTF_8)),
+                Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+            )
+            val apiUrl = "$baseUrl/api/paginas".toHttpUrl().newBuilder()
+                .addPathSegment(slug)
+                .addPathSegment(number)
+                .addQueryParameter("t", token)
+                .build()
+            val request = Request.Builder().url(apiUrl)
+                .header("Accept", "application/json")
+                .header("Referer", document.location())
+                .header("X-BT-P", signature)
+                .build()
+            withContext(Dispatchers.IO) {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw IllegalStateException("BlitzToons: API de páginas retornou HTTP ${response.code}.")
+                    }
+                    val body = response.body?.string()
+                        ?: throw IllegalStateException("BlitzToons: resposta da API vazia.")
+                    val data = Json.parseToJsonElement(body).jsonObject
+                    (data["paginas"] as? JsonArray)
+                        ?.mapNotNull { (it as? JsonPrimitive)?.content }
+                        ?.filter { it.startsWith("https://") }
+                        ?.distinct()
+                        .orEmpty()
+                }
+            }
+        } else {
+            document.select("img[alt^='Página ']")
+                .mapNotNull { it.imageSource() }
+                .filter { it.startsWith("https://") }
+                .distinct()
+        }
         if (images.isEmpty()) {
-            throw IllegalStateException("BlitzToons: páginas indisponíveis ou capítulo exige login.")
+            throw IllegalStateException("BlitzToons: nenhuma imagem pública retornada para o capítulo.")
         }
         return images.mapIndexed { index, image -> Page(index, document.location(), image) }
     }
@@ -222,6 +270,8 @@ abstract class BlitzToons : KeiSource() {
     }
 
     companion object {
+        // Chave publicada no reader.js em 21/11/2026; atualizar se o site a alterar.
+        private const val PAGES_API_KEY = "WwjYZS9WcWwif89zgvfFdQlPfwS_vfOE"
         private val defaultGenres = listOf(
             "Ação" to "acao",
             "Aventura" to "aventura",
