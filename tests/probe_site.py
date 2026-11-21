@@ -101,3 +101,16 @@ for chapter in ("/ler/pronto-acao/2", "/ler/mestre-dos-dragoes/268"):
                 print("IMAGE_ERROR", type(exc).__name__, str(exc)[:120], flush=True)
     except Exception as exc:
         print("CHAPTER_ERROR", chapter, type(exc).__name__, str(exc)[:240], flush=True)
+
+print("\n=== READER JS ===", flush=True)
+try:
+    js_response = session.get(ROOT + "/static/js/reader.js?v=1795153176", timeout=20)
+    print("reader_js_status", js_response.status_code, "bytes", len(js_response.content), flush=True)
+    js = js_response.text
+    for token in ("fetch(", "data-pt", "data-chapter", "dataset.pt", "page.src", ".src =", "/api/", "pages/", "image", "token", "data-pages-wrap"):
+        print("JS_TOKEN", token, "count", js.count(token), flush=True)
+        for hit in list(re.finditer(re.escape(token), js, re.I))[:8]:
+            print("JS_CONTEXT", re.sub(r"\s+", " ", js[max(0,hit.start()-250):hit.end()+350])[:650], flush=True)
+    print("JS_FULL_START", js[:35000], "JS_FULL_END", flush=True)
+except Exception as exc:
+    print("JS_ERROR", type(exc).__name__, str(exc)[:250], flush=True)
