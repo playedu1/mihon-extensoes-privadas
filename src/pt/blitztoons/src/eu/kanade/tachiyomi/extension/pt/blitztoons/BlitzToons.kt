@@ -233,8 +233,8 @@ abstract class BlitzToons : KeiSource() {
                     val body = response.body?.string()
                         ?: throw IllegalStateException("BlitzToons: resposta da API vazia.")
                     val data = Json.parseToJsonElement(body).jsonObject
-                    (data["paginas"] as? JsonArray)
-                        ?.mapNotNull { (it as? JsonPrimitive)?.content }
+                    val pages = data["paginas"] as? JsonArray
+                    pages?.mapNotNull { (it as? JsonPrimitive)?.content }
                         ?.filter { it.startsWith("https://") }
                         ?.distinct()
                         .orEmpty()
