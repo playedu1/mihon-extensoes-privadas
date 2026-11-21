@@ -46,3 +46,58 @@ for params in queries:
     except Exception as e:
         print("ERROR", repr(e))
     time.sleep(0.6)
+
+
+# Diagnostico da leitura (nao acessa capitulos restritos).
+# O catalogo pode continuar funcionando enquanto imagens passam a ser carregadas por JS.
+print("\n=== DIAGNOSTICO DO LEITOR ===", flush=True)
+import re
+from urllib.parse import urlsplit
+from collections import Counter
+for chapter in ("/ler/pronto-acao/2", "/ler/mestre-dos-dragoes/268"):
+    url = ROOT + chapter
+    try:
+        response = session.get(url, timeout=25, headers={"Referer": ROOT + "/"})
+        soup = BeautifulSoup(response.text, "html.parser")
+        print("\nCHAPTER", chapter, "HTTP", response.status_code, "final", response.url,
+              "html_bytes", len(response.content), "content_type", response.headers.get("Content-Type"),
+              "redirects", len(response.history), flush=True)
+        print("images_total", len(soup.select("img")),
+              "alt_paginas", len(soup.select("img[alt^='Página ']")),
+              "scripts", len(soup.select("script")),
+              "next_data", bool(soup.select_one("script#__NEXT_DATA__")),
+              "rsc_flight", "__next_f.push" in response.text,
+              flush=True)
+        for img in soup.select("img")[:12]:
+            print("IMG", {
+                "alt": img.get("alt", "")[:48],
+                "src": img.get("src", "")[:140],
+                "data-src": img.get("data-src", "")[:140],
+                "srcset": img.get("srcset", "")[:140],
+                "loading": img.get("loading"),
+            }, flush=True)
+        for script in soup.select("script[src]")[:20]:
+            print("SCRIPT", script.get("src", "")[:160], flush=True)
+        for term in ("capitulo-imagens", "chapter-images", "chapterImages", "pageImages",
+                     "imageUrls", "images", "paginas", "pages", "/api/", "reader"):
+            matches = list(re.finditer(re.escape(term), response.text, re.I))
+            if matches:
+                print("PATTERN", term, "count", len(matches), flush=True)
+                for match in matches[:2]:
+                    snippet = response.text[max(0, match.start()-110):match.end()+140]
+                    print("CONTEXT", re.sub(r"\s+", " ", snippet)[:320], flush=True)
+        urls = [
+            img.get("data-src") or img.get("data-original") or img.get("src")
+            for img in soup.select("img[alt^='Página ']")
+        ]
+        for src in [u for u in urls if u and u.startswith("http")][:2]:
+            try:
+                im = session.get(src, headers={"Referer": url}, timeout=15, stream=True)
+                print("IMAGE_TEST", urlsplit(src).netloc, urlsplit(src).path[:140],
+                      "HTTP", im.status_code, "type", im.headers.get("Content-Type"),
+                      "redirects", len(im.history), flush=True)
+                im.close()
+            except Exception as exc:
+                print("IMAGE_ERROR", type(exc).__name__, str(exc)[:120], flush=True)
+    except Exception as exc:
+        print("CHAPTER_ERROR", chapter, type(exc).__name__, str(exc)[:240], flush=True)
