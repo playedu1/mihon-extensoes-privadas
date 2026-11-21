@@ -114,3 +114,33 @@ try:
     print("JS_FULL_START", js[:35000], "JS_FULL_END", flush=True)
 except Exception as exc:
     print("JS_ERROR", type(exc).__name__, str(exc)[:250], flush=True)
+
+print("\n=== API DE PAGINAS PUBLICAS ===", flush=True)
+import hmac, hashlib, base64
+for chapter in ("/ler/pronto-acao/2", "/ler/mestre-dos-dragoes/268"):
+    try:
+        resp = session.get(ROOT + chapter, timeout=20)
+        doc = BeautifulSoup(resp.text, "html.parser")
+        block = doc.select_one("[data-block][data-pt]")
+        reader = doc.select_one("[data-reader]")
+        if not block or not reader:
+            print("API_SKIP", chapter, flush=True)
+            continue
+        token = block.get("data-pt", "")
+        slug = reader.get("data-slug", "")
+        num = block.get("data-num", "")
+        key = "WwjYZS9WcWwif89zgvfFdQlPfwS_vfOE"
+        signature = base64.urlsafe_b64encode(hmac.new(key.encode(), ("p|" + token).encode(), hashlib.sha256).digest()).decode().rstrip("=")
+        api = ROOT + "/api/paginas/" + slug + "/" + num + "?t=" + requests.utils.quote(token, safe="")
+        reply = session.get(api, headers={"Accept":"application/json","X-BT-P":signature,"Referer":ROOT+chapter}, timeout=20)
+        payload = reply.json() if "json" in reply.headers.get("Content-Type","") else {}
+        pages = payload.get("paginas", []) if isinstance(payload,dict) else []
+        print("API_TEST",chapter,"HTTP",reply.status_code,"count",len(pages),"first_host",
+              urlsplit(pages[0]).netloc if pages and isinstance(pages[0],str) else None,
+              "error",str(payload.get("error",""))[:100] if isinstance(payload,dict) else "",flush=True)
+        if pages and isinstance(pages[0],str):
+            im=session.get(pages[0],headers={"Referer":ROOT+chapter},timeout=20,stream=True)
+            print("API_IMAGE_TEST",chapter,"status",im.status_code,"type",im.headers.get("Content-Type"),flush=True)
+            im.close()
+    except Exception as exc:
+        print("API_ERROR",chapter,type(exc).__name__,str(exc)[:250],flush=True)
